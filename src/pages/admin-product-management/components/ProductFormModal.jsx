@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DialogOverlaySystem } from '../../../components/ui/DialogOverlaySystem';
+import DialogOverlaySystem from '../../../components/ui/DialogOverlaySystem'; // FIXED: Changed from named to default import
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
@@ -167,7 +167,7 @@ const ProductFormModal = ({
       case 'liquors':
         return (
           <Input
-            label="Alcohol Percentage"
+            label="Alcohol Percentage (%)"
             type="number"
             min="0"
             max="100"
@@ -180,7 +180,7 @@ const ProductFormModal = ({
       case 'vapes':
         return (
           <Input
-            label="Nicotine Percentage"
+            label="Nicotine Percentage (%)"
             type="number"
             min="0"
             max="50"
@@ -193,7 +193,7 @@ const ProductFormModal = ({
       case 'cigars':
         return (
           <Input
-            label="Tobacco Percentage"
+            label="Tobacco Percentage (%)"
             type="number"
             min="0"
             max="100"
@@ -211,41 +211,40 @@ const ProductFormModal = ({
   return (
     <>
       <DialogOverlaySystem
-        isOpen={isOpen && !showAIImages}
+        isOpen={isOpen}
         onClose={onClose}
         title={product ? 'Edit Product' : 'Add New Product'}
-        size="lg"
+        size="xl"
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Product Name *"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              error={errors.name}
-              required
-            />
-            
-            <Select
-              label="Category *"
-              options={categoryOptions}
-              value={formData.category}
-              onChange={(value) => setFormData({ ...formData, category: value })}
-              required
-            />
-          </div>
-
+        <form onSubmit={handleSubmit} className="space-y-6">
           <Input
-            label="Description *"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            error={errors.description}
+            label="Product Name"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            error={errors.name}
             required
           />
+          
+          <Select
+            label="Category"
+            options={categoryOptions}
+            value={formData.category}
+            onChange={(value) => setFormData({ ...formData, category: value })}
+            required
+          />
+          
+          <textarea
+            placeholder="Product Description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 min-h-[100px]"
+            required
+          />
+          {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Price *"
+              label="Price ($)"
               type="number"
               min="0"
               step="0.01"
@@ -254,9 +253,8 @@ const ProductFormModal = ({
               error={errors.price}
               required
             />
-            
             <Input
-              label="Stock Quantity *"
+              label="Stock Quantity"
               type="number"
               min="0"
               value={formData.stock}
@@ -270,7 +268,7 @@ const ProductFormModal = ({
 
           {/* Image Section */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Product Image</label>
+            <label className="block text-sm font-medium text-gray-700">Product Image</label>
             <div className="flex gap-2">
               <Input
                 placeholder="Image URL"
@@ -280,21 +278,19 @@ const ProductFormModal = ({
               />
               <Button
                 type="button"
-                variant="outline"
                 onClick={handleGenerateAIImages}
                 disabled={loadingAI}
+                variant="outline"
               >
-                <Icon name="Wand2" size={16} className="mr-2" />
-                {loadingAI ? 'Generating...' : 'AI Images'}
+                {loadingAI ? 'Generating...' : 'Use AI'}
               </Button>
             </div>
-            
             {formData.image && (
               <div className="mt-2">
-                <img
-                  src={formData.image}
-                  alt="Product preview"
-                  className="w-24 h-24 object-cover rounded border"
+                <img 
+                  src={formData.image} 
+                  alt="Product preview" 
+                  className="w-24 h-24 object-cover rounded-lg"
                   onError={(e) => {
                     e.target.src = '/assets/images/no_image.png';
                   }}
@@ -304,12 +300,19 @@ const ProductFormModal = ({
           </div>
 
           {/* Form Actions */}
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button type="button" variant="outline" onClick={onClose}>
+          <div className="flex justify-end space-x-3 pt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+            >
               Cancel
             </Button>
-            <Button type="submit" loading={loading}>
-              <Icon name="Plus" size={16} className="mr-2" />
+            <Button
+              type="submit"
+              loading={loading}
+              disabled={loading}
+            >
               {product ? 'Update Product' : 'Add Product'}
             </Button>
           </div>
@@ -323,30 +326,30 @@ const ProductFormModal = ({
         title="Select AI Generated Image"
         size="xl"
       >
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
           {aiImages.map((image, index) => (
             <div
               key={index}
-              className="cursor-pointer border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
+              className="cursor-pointer border-2 border-transparent hover:border-red-500 rounded-lg overflow-hidden transition-colors"
               onClick={() => handleSelectAIImage(image)}
             >
               <img
-                src={image.thumbnail}
+                src={image.url}
                 alt={image.description}
                 className="w-full h-32 object-cover"
               />
-              <div className="p-2">
-                <p className="text-xs text-muted-foreground truncate">
-                  {image.description}
-                </p>
-              </div>
+              <p className="p-2 text-xs text-gray-600">
+                {image.description}
+              </p>
             </div>
           ))}
         </div>
-        
         <div className="flex justify-end mt-4">
-          <Button variant="outline" onClick={() => setShowAIImages(false)}>
-            Cancel
+          <Button
+            onClick={() => setShowAIImages(false)}
+            variant="outline"
+          >
+            Close
           </Button>
         </div>
       </DialogOverlaySystem>
