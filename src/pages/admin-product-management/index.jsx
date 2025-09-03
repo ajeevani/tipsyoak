@@ -280,6 +280,21 @@ const AdminProductManagement = () => {
             </div>
           </div>
 
+          {/* Mobile Menu Toggle */}
+          <div className="lg:hidden flex items-center justify-between p-4 bg-background border-b border-border">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              >
+                <Icon name="Menu" size={20} />
+              </Button>
+              <h1 className="text-xl font-semibold">Product Management</h1>
+            </div>
+          </div>
+
+
           {/* Content based on current view */}
           {currentView === 'stats' ? (
             <ProductStats products={products} />

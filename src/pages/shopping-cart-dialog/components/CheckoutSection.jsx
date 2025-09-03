@@ -1,118 +1,234 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
+import Input from '../../../components/ui/Input';
+import Icon from '../../../components/AppIcon';
+import { useAuth } from '../../../hooks/useAuth';
+import { useOrders } from '../../../hooks/useOrders';
 
 const CheckoutSection = ({ 
-  total = 0, 
-  itemCount = 0, 
-  onClose,
-  isAuthenticated = false 
+  items, 
+  subtotal, 
+  tax, 
+  total, 
+  onOrderComplete 
 }) => {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [showCheckoutForm, setShowCheckoutForm] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+  
+  const { user } = useAuth();
+  const { createOrder } = useOrders();
   const navigate = useNavigate();
 
-  const handleCheckout = async () => {
-    setIsProcessing(true);
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Email is invalid';
+    }
+    
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Phone number is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleCheckout = () => {
+    if (items.length === 0) return;
+    
+    if (user) {
+      // Pre-fill form with user data
+      setFormData({
+        name: user.user_metadata?.name || user.email,
+        email: user.email,
+        phone: user.user_metadata?.phone || '',
+        address: user.user_metadata?.address || ''
+      });
+    }
+    
+    setShowCheckoutForm(true);
+  };
+
+  const handleSubmitOrder = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+    
+    setLoading(true);
     
     try {
-      // Simulate checkout process
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const orderData = {
+        customer_name: formData.name,
+        customer_email: formData.email,
+        customer_phone: formData.phone,
+        customer_address: formData.address,
+        subtotal: subtotal,
+        tax: tax,
+        total: total,
+        user_id: user?.id || null
+      };
       
-      if (!isAuthenticated) {
-        // Redirect to authentication for guest users
-        onClose();
-        navigate('/authentication-dialog');
-      } else {
-        // Process order for authenticated users
-        // This would typically involve API calls
-        console.log('Processing order for authenticated user');
-        
-        // Show success message and redirect
-        alert('Order placed successfully! You will receive a confirmation email shortly.');
-        onClose();
-        navigate('/');
+      const orderItems = items.map(item => ({
+        product_id: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price
+      }));
+      
+      const { data, error } = await createOrder(orderData, orderItems);
+      
+      if (error) {
+        console.error('Error creating order:', error);
+        return;
       }
+      
+      // Order created successfully
+      onOrderComplete?.();
+      setShowCheckoutForm(false);
+      
+      // Show success message or redirect
+      alert('Order placed successfully! We\'ll prepare your order for pickup.');
+      
     } catch (error) {
-      console.error('Checkout error:', error);
-      alert('There was an error processing your order. Please try again.');
+      console.error('Error submitting order:', error);
     } finally {
-      setIsProcessing(false);
+      setLoading(false);
     }
   };
 
-  const handleContinueShopping = () => {
-    onClose();
-    navigate('/products-catalog');
-  };
+  if (showCheckoutForm) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center space-x-2 mb-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowCheckoutForm(false)}
+          >
+            <Icon name="ArrowLeft" size={16} />
+          </Button>
+          <h3 className="text-lg font-semibold">Checkout Details</h3>
+        </div>
 
-  if (itemCount === 0) {
-    return null;
+        <form onSubmit={handleSubmitOrder} className="space-y-4">
+          <Input
+            label="Full Name *"
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            error={errors.name}
+            required
+          />
+          
+          <Input
+            label="Email Address *"
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            error={errors.email}
+            required
+          />
+          
+          <Input
+            label="Phone Number *"
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            error={errors.phone}
+            required
+          />
+          
+          <Input
+            label="Address (Optional)"
+            value={formData.address}
+            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+          />
+
+          {/* Order Summary */}
+          <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <h4 className="font-medium">Order Summary</h4>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Tax:</span>
+                <span>${tax.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between font-semibold">
+                <span>Total:</span>
+                <span>${total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex space-x-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowCheckoutForm(false)}
+              className="flex-1"
+            >
+              Back to Cart
+            </Button>
+            <Button type="submit" loading={loading} className="flex-1">
+              <Icon name="Check" size={16} className="mr-2" />
+              Place Order
+            </Button>
+          </div>
+        </form>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4 p-4 border-t border-border/50 bg-background/80 backdrop-blur-sm">
-      {/* Checkout Button */}
-      <Button
-        variant="default"
+    <div className="space-y-4">
+      {/* Cart Summary */}
+      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+        <div className="flex justify-between text-sm">
+          <span>Subtotal:</span>
+          <span>${subtotal.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span>Tax (8.5%):</span>
+          <span>${tax.toFixed(2)}</span>
+        </div>
+        <hr className="my-2" />
+        <div className="flex justify-between font-semibold">
+          <span>Total:</span>
+          <span>${total.toFixed(2)}</span>
+        </div>
+      </div>
+
+      {/* Checkout Button - FIXED */}
+      <Button 
         onClick={handleCheckout}
-        disabled={isProcessing}
-        loading={isProcessing}
-        className="w-full h-12 text-base font-semibold"
-      >
-        {isProcessing ? (
-          'Processing...'
-        ) : (
-          <>
-            <Icon name="CreditCard" size={18} className="mr-2" />
-            {isAuthenticated ? 'Place Order' : 'Proceed to Checkout'}
-          </>
-        )}
-      </Button>
-
-      {/* Continue Shopping */}
-      <Button
-        variant="outline"
-        onClick={handleContinueShopping}
+        disabled={items.length === 0}
         className="w-full"
-        disabled={isProcessing}
+        size="lg"
       >
-        <Icon name="ArrowLeft" size={16} className="mr-2" />
-        Continue Shopping
+        <Icon name="CreditCard" size={16} className="mr-2" />
+        Proceed to Checkout ({items.length} items)
       </Button>
 
-      {/* Order Info */}
-      <div className="text-center space-y-2">
-        <p className="text-xs text-muted-foreground">
-          {!isAuthenticated && 'Sign in required for checkout • '}
-          Pickup only • No delivery available
-        </p>
-        
-        <div className="flex items-center justify-center space-x-4 text-xs text-muted-foreground">
-          <div className="flex items-center space-x-1">
-            <Icon name="Shield" size={12} />
-            <span>Secure checkout</span>
-          </div>
-          
-          <div className="flex items-center space-x-1">
-            <Icon name="Clock" size={12} />
-            <span>Ready in 15-30 min</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Minimum Age Notice */}
-      <div className="bg-warning/10 border border-warning/20 rounded-lg p-3">
-        <div className="flex items-start space-x-2">
-          <Icon name="AlertTriangle" size={16} className="text-warning mt-0.5 flex-shrink-0" />
-          <div className="text-xs text-foreground">
-            <p className="font-medium mb-1">Age Verification Required</p>
-            <p className="text-muted-foreground">
-              You must be 21+ to purchase these products. Valid ID required at pickup.
-            </p>
-          </div>
-        </div>
-      </div>
+      <p className="text-xs text-muted-foreground text-center">
+        Pickup only • Ready in 15 minutes
+      </p>
     </div>
   );
 };

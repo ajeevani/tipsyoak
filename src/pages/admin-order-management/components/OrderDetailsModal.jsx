@@ -90,8 +90,9 @@ const OrderDetailsModal = ({
       title={`Order #${order?.orderId}`}
       description={`Placed on ${formatDate(order?.orderDate)}`}
       size="xl"
+      className="max-h-[90vh] overflow-y-auto"
     >
-      <div className="space-y-6">
+      <div className="space-y-6 max-h-[70vh] overflow-y-auto">
         {/* Order Status */}
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
           <div className="flex items-center space-x-3">
@@ -276,6 +277,19 @@ const OrderDetailsModal = ({
             )}
           </div>
         </div>
+      </div>
+      <div className="sticky bottom-0 bg-background border-t pt-4 flex justify-end space-x-3">
+        <Button variant="outline" onClick={onClose}>
+          Close
+        </Button>
+        {order?.status === 'pending' && (
+          <Button onClick={() => onUpdateStatus(order.id, 'confirmed')}>
+            Confirm Order
+          </Button>
+        )}
+        <Button variant="destructive" onClick={() => onDeleteOrder(order.id)}>
+          Delete Order
+        </Button>
       </div>
     </DialogOverlaySystem>
   );

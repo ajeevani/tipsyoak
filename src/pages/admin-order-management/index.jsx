@@ -343,6 +343,24 @@ const AdminOrderManagement = () => {
             </button>
           </div>
 
+          {/* Mobile Menu Toggle */}
+          <div className="lg:hidden flex items-center justify-between p-4 bg-background border-b border-border sticky top-0 z-10">
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              >
+                <Icon name="Menu" size={20} />
+              </Button>
+              <div>
+                <h1 className="text-xl font-semibold">Order Management</h1>
+                <p className="text-sm text-muted-foreground">Manage customer orders</p>
+              </div>
+            </div>
+          </div>
+
+
           {/* Order Statistics */}
           <OrderStats orders={orders} />
 
